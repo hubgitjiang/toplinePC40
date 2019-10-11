@@ -36,12 +36,37 @@
                 <span>共找到56947条符合条件的内容</span>
             </div>
             <!-- 表格区域 -->
-            <el-table :data="tableData" style="width: 100%">
-                <el-table-column prop="date" label="日期" width="180">
+            <!-- el-table: 表格组件 data：指定表格的数据源 -->
+            <el-table :stripe="true" :border="true" :data="dataList" style="width: 100%">
+                <!-- el-table-column：表格组件中的每一列 label：当前列的标题 prop: 当前行显示的数据的属性 -->
+                <el-table-column align="center" label="图片" width="180">
+                    <!-- 表单将来当前行不是显示 prop 属性对应的数据，而是显示 tempalte 中的内容 -->
+                    <!-- 给 template 设置属性： slot-scope -->
+                    <!-- 如果在 template 中需要使用到数据的话，必须通过 scope.row 属性来使用-->
+                    <!-- scope.row 是当前行的数据源 -->
+                    <template slot-scope="scope">
+                        <!-- {{ scope.row }} -->
+                        <img class="myimg" :src="scope.row.cover.images[0]" />
+                    </template>
                 </el-table-column>
-                <el-table-column prop="name" label="姓名" width="180">
+                <el-table-column align="center" prop="title" label="标题" width="180">
                 </el-table-column>
-                <el-table-column prop="address" label="地址">
+                <el-table-column align="center" prop="status" label="状态" width="180">
+                    <template slot-scope="scope">
+                        <span v-if="scope.row.status === 0">草稿</span>
+                        <span v-if="scope.row.status === 1">待审核</span>
+                        <span v-if="scope.row.status === 2">审核通过</span>
+                        <span v-if="scope.row.status === 3">审核失败</span>
+                        <span v-if="scope.row.status === 4">已删除</span>
+                    </template>
+                </el-table-column>
+                <el-table-column align="center" prop="pubdate" label="发布日期" width="180">
+                </el-table-column>
+                <el-table-column align="center" label="操作">
+                    <template>
+                        <el-button size="mini" round><i class="el-icon-edit"></i>修改</el-button>
+                        <el-button size="mini" round><i class="el-icon-delete"></i>删除</el-button>
+                    </template>
                 </el-table-column>
             </el-table>
             <!-- 分页区域 -->
@@ -52,6 +77,8 @@
 </template>
 
 <script>
+// 得到 token
+// let userInfo = JSON.parse(window.localStorage.getItem('userInfo'))
 export default {
   data () {
     return {
@@ -60,29 +87,33 @@ export default {
         resource: ''
       },
       value1: '',
-      tableData: [{
-        date: '2016-05-02',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1518 弄'
-      }, {
-        date: '2016-05-04',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1517 弄'
-      }, {
-        date: '2016-05-01',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1519 弄'
-      }, {
-        date: '2016-05-03',
-        name: '王小虎',
-        address: '上海市普陀区金沙江路 1516 弄'
-      }]
+      // 保存文章列表数据
+      dataList: [],
+      // 文章的总条数
+      total_count: 0
     }
   },
   methods: {
-    onSubmit () {
-      console.log('submit!')
+    // 打开页面时，需要去请求文章列表的数据
+    getArticleList () {
+      // 这个请求如果不带 token 返回 401
+      // 携带 token
+      this.$http({
+        url: '/articles',
+        method: 'GET'
+        // headers: {
+        //     Authorization: `Bearer ${userInfo.token}`
+        // }
+      }).then(res => {
+        // 将数据源保存到 dataList 中
+        this.dataList = res.results
+        // 数据的总条数进行保存
+        this.total_count = res.total_count
+      })
     }
+  },
+  created () {
+    this.getArticleList()
   }
 }
 </script>
@@ -90,5 +121,10 @@ export default {
 <style lang="less">
 .mycard {
     margin-top: 20px;
+}
+
+.myimg {
+    width: 150px;
+    height: 100px;
 }
 </style>

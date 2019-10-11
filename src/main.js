@@ -17,6 +17,50 @@ import axios from 'axios'
 // 给 axios 设置一个基准地址
 axios.defaults.baseURL = 'http://ttapi.research.itcast.cn/mp/v1_0'
 
+// 设置 axios 的拦截器
+// 请求拦截器：发送请求之前执行
+axios.interceptors.request.use(
+  function (config) {
+    // 请求正常时执行的逻辑
+    // config：axios 请求服务器的相关信息：
+    //  url:  请求的接口地址
+    //  method: 请求的方式
+    //  baseUrl: 请求的基准地址
+    //  headers: Authorization （token）
+    // 在请求拦截器中执行完逻辑代码之后一定要 return config, 否则请求无法发送
+
+    // 获取 token
+    let userInfo = JSON.parse(window.localStorage.getItem('userInfo'))
+    // 判断只在 userInfo 存在时，才需要添加 token
+    if (userInfo) {
+      // 在请求头中添加 token
+      config.headers.Authorization = `Bearer ${userInfo.token}`
+    }
+    return config
+  },
+  function (error) {
+    // 请求异常时的逻辑
+    return Promise.reject(error)
+  }
+)
+
+// 响应拦截器
+axios.interceptors.response.use(
+  function (response) {
+    // 当服务器响应信息回来时执行
+    // 响应拦截器如果要返回信息，必须 return response
+    // console.log("------------------------------------我是响应拦截器------------------------------------");
+    // console.log(response);
+    // console.log("------------------------------------我是响应拦截器------------------------------------");
+    // return response;
+    return response.data.data
+  },
+  function (error) {
+    // 当响应的状态码 >= 400 时执行   4~~ 客户端错误 5~~ 服务器错误
+    return Promise.reject(error)
+  }
+)
+
 // 将 axios 挂载到 Vue 的原型上
 // 可通过 this.$http 来使用
 // .vue 是 vue 中的组件
