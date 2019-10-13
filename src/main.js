@@ -13,9 +13,18 @@ import 'element-ui/lib/theme-chalk/index.css'
 import '@/styles/index.less'
 // 导入 axios
 import axios from 'axios'
+// 导入 json-bigint
+import JSONBig from 'json-bigint'
 
 // 给 axios 设置一个基准地址
 axios.defaults.baseURL = 'http://ttapi.research.itcast.cn/mp/v1_0'
+
+// 对服务器响应给 axios 的数据进行 bigint 的处理
+axios.defaults.transformResponse = [function (data) {
+  // 这个 data 就是纯粹的服务器响应给 axios 的数据
+  // 在 return 之前要进行转换
+  return JSONBig.parse(data)
+}]
 
 // 设置 axios 的拦截器
 // 请求拦截器：发送请求之前执行
@@ -49,9 +58,9 @@ axios.interceptors.response.use(
   function (response) {
     // 当服务器响应信息回来时执行
     // 响应拦截器如果要返回信息，必须 return response
-    // console.log("------------------------------------我是响应拦截器------------------------------------");
-    // console.log(response);
-    // console.log("------------------------------------我是响应拦截器------------------------------------");
+    console.log('------------------------------------我是响应拦截器------------------------------------')
+    console.log(response)
+    console.log('------------------------------------我是响应拦截器------------------------------------')
     // return response;
     return response.data.data
   },
@@ -104,5 +113,5 @@ if (a === true) {
 new Vue({
   router,
   store,
-  render: h => h(App)
-}).$mount('#app')
+  render: h => h(App) // 渲染函数，会将 App 渲染到视图上
+}).$mount('#app') // 将内容渲染到页面上 id 名为 app 的元素上

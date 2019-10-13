@@ -33,11 +33,11 @@
         <!-- 文章显示区域 -->
         <el-card class="box-card mycard">
             <div slot="header" class="clearfix">
-                <span>共找到56947条符合条件的内容</span>
+                <span>共找到{{total_count}}条符合条件的内容</span>
             </div>
             <!-- 表格区域 -->
             <!-- el-table: 表格组件 data：指定表格的数据源 -->
-            <el-table :stripe="true" :border="true" :data="dataList" style="width: 100%">
+            <el-table v-loading="tableLoading" :stripe="true" :border="true" :data="dataList" style="width: 100%">
                 <!-- el-table-column：表格组件中的每一列 label：当前列的标题 prop: 当前行显示的数据的属性 -->
                 <el-table-column align="center" label="图片" width="180">
                     <!-- 表单将来当前行不是显示 prop 属性对应的数据，而是显示 tempalte 中的内容 -->
@@ -63,14 +63,17 @@
                 <el-table-column align="center" prop="pubdate" label="发布日期" width="180">
                 </el-table-column>
                 <el-table-column align="center" label="操作">
-                    <template>
-                        <el-button size="mini" round><i class="el-icon-edit"></i>修改</el-button>
-                        <el-button size="mini" round><i class="el-icon-delete"></i>删除</el-button>
+                    <template slot-scope="scope">
+                        <el-button size="mini" round>
+                            <i class="el-icon-edit"></i>修改</el-button>
+                        <el-button size="mini" round @click="delArticle(scope.row.id)">
+                            <i class="el-icon-delete"></i>删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
-            <!-- 分页区域 -->
-            <el-pagination background layout="prev, pager, next" :total="1000">
+            <!-- 分页组件 -->
+            <!-- el-pagination：分页组件 layout：分页组件的布局 total -->
+            <el-pagination :disabled="tableLoading" @current-change="pageChange" @next-click="nextClick" @prev-click="perClick" background layout="prev, pager, next" :total="total_count">
             </el-pagination>
         </el-card>
     </div>
@@ -90,25 +93,73 @@ export default {
       // 保存文章列表数据
       dataList: [],
       // 文章的总条数
-      total_count: 0
+      total_count: 0,
+      // 分页的页码
+      page: 1, // 默认第一页
+      // 每页的条数
+      per_page: 20, // 每页显示 20 条
+      // 控制表格的加载效果
+      tableLoading: false
     }
   },
   methods: {
     // 打开页面时，需要去请求文章列表的数据
     getArticleList () {
-      // 这个请求如果不带 token 返回 401
-      // 携带 token
+      // 开启加载动画
+      this.tableLoading = true
+      setTimeout(() => {
+        // 这个请求如果不带 token 返回 401
+        // 携带 token
+        this.$http({
+          url: '/articles',
+          method: 'GET',
+          // 如果请求方式是 POST：使用 data 来进行传参
+          // 如果请求方式是 GET：使用 params 来进行传参
+          params: {
+            page: this.page,
+            per_page: this.per_page
+          }
+        }).then(res => {
+          // 将数据源保存到 dataList 中
+          this.dataList = res.results
+          // 数据的总条数进行保存
+          this.total_count = res.total_count
+          // 关闭加载动画
+          this.tableLoading = false
+        })
+      }, 3000)
+    },
+    // 点击上一次页会触发
+    perClick () {
+      // 先将当前页减一
+      this.page = this.page - 1
+      // 应该重新请求当前页的数据
+      this.getArticleList()
+    },
+    // 点击下一页会触发
+    nextClick () {
+      // 先将当前页加一
+      this.page = this.page + 1
+      // 重新请求数据源
+      this.getArticleList()
+    },
+    // 当点击具体页码时会触发
+    pageChange (page) {
+      // 将页码赋值给 this.page
+      this.page = page
+      // 重新请求数据
+      this.getArticleList()
+    },
+    // 删除数据的方法
+    delArticle (id) {
+      // 将数据进行删除
       this.$http({
-        url: '/articles',
-        method: 'GET'
-        // headers: {
-        //     Authorization: `Bearer ${userInfo.token}`
-        // }
+        url: `/articles/${id}`,
+        method: 'DELETE'
       }).then(res => {
-        // 将数据源保存到 dataList 中
-        this.dataList = res.results
-        // 数据的总条数进行保存
-        this.total_count = res.total_count
+        console.log('-----------------------------------')
+        console.log(res)
+        console.log('-----------------------------------')
       })
     }
   },
