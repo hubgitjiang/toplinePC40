@@ -10,23 +10,29 @@
             <!-- 添加一些 form 表单 -->
             <el-form ref="form" :model="form" label-width="80px">
                 <el-form-item label="文章状态">
-                    <el-radio-group v-model="form.resource">
-                        <el-radio label="全部"></el-radio>
-                        <el-radio label="草稿"></el-radio>
-                        <el-radio label="待审核"></el-radio>
-                        <el-radio label="审核通过"></el-radio>
-                        <el-radio label="审核失败"></el-radio>
-                    </el-radio-group>
+                    {{ status }}
+                    <el-radio v-model="status" label="">全部</el-radio>
+                    <el-radio v-model="status" label="0">草稿</el-radio>
+                    <el-radio v-model="status" label="1">待审核</el-radio>
+                    <el-radio v-model="status" label="2">审核通过</el-radio>
+                    <el-radio v-model="status" label="3">审核失败</el-radio>
                 </el-form-item>
                 <el-form-item label="频道列表">
-                    <el-select v-model="form.region" placeholder="请选择活动区域">
-                        <el-option label="区域一" value="shanghai"></el-option>
-                        <el-option label="区域二" value="beijing"></el-option>
+                    <!-- el-select：选择器 v-model：当前选择的选项的 value 属性  -->
+                    {{ form.channelid }}
+                    <el-select clearable v-model="form.channelid" placeholder="请选择活动区域">
+                        <!-- el-option：下拉选项 label：显示的文本 value="对应的值" -->
+                        <el-option v-for="(item,index) in channelsList" :key="index" :label="item.name" :value="item.id"></el-option>
                     </el-select>
                 </el-form-item>
                 <el-form-item label="时间选择">
-                    <el-date-picker v-model="value1" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期">
+                    <!-- v-model：绑定的数据源  range-separator：两个日期之间的分隔符  -->
+                    {{ dateTime }}
+                    <el-date-picker value-format="yyyy-MM-dd" v-model="dateTime" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期">
                     </el-date-picker>
+                </el-form-item>
+                <el-form-item>
+                    <el-button @click="searchList">搜索</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -66,7 +72,7 @@
                     <template slot-scope="scope">
                         <el-button size="mini" round>
                             <i class="el-icon-edit"></i>修改</el-button>
-                        <el-button size="mini" round @click="delArticle(scope.row.id)">
+                        <el-button size="mini" round @click="delArticle(scope.row)">
                             <i class="el-icon-delete"></i>删除</el-button>
                     </template>
                 </el-table-column>
@@ -86,10 +92,11 @@ export default {
   data () {
     return {
       form: {
-        region: '',
+        channelid: '',
         resource: ''
       },
-      value1: '',
+      // 开始&结束的时间
+      dateTime: [],
       // 保存文章列表数据
       dataList: [],
       // 文章的总条数
@@ -97,9 +104,13 @@ export default {
       // 分页的页码
       page: 1, // 默认第一页
       // 每页的条数
-      per_page: 20, // 每页显示 20 条
+      per_page: 10, // 每页显示 10 条
       // 控制表格的加载效果
-      tableLoading: false
+      tableLoading: false,
+      // 得到频道的数据源
+      channelsList: [],
+      // 筛选的状态属性： 0 , 1, 2, 3 没有内容
+      status: ''
     }
   },
   methods: {
@@ -118,6 +129,10 @@ export default {
           params: {
             page: this.page,
             per_page: this.per_page
+            // status: 0, // 草稿
+            // channel_id: 3, // IOS
+            // begin_pubdate: this.dateTime[0], // 开始时间
+            // end_pubdate: this.dateTime[1] // 结束时间
           }
         }).then(res => {
           // 将数据源保存到 dataList 中
@@ -127,7 +142,7 @@ export default {
           // 关闭加载动画
           this.tableLoading = false
         })
-      }, 3000)
+      }, 1000)
     },
     // 点击上一次页会触发
     perClick () {
@@ -151,20 +166,82 @@ export default {
       this.getArticleList()
     },
     // 删除数据的方法
-    delArticle (id) {
-      // 将数据进行删除
+    delArticle (row) {
+      this.$confirm('此操作将永久删除该数据, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        let url = `/articles/${row.id}`
+        // 将数据进行删除
+        this.$http({
+          url: url,
+          method: 'DELETE'
+        }).then(res => {
+          console.log(res) // undefined:说明删除成功了
+          // 需要重新请求数据
+          this.searchList()
+          // 提示删除成功
+          this.$message({
+            message: '删除成功',
+            type: 'success'
+          })
+        })
+      })
+    },
+    // 获取频道数据
+    getChannels () {
+      // 请求服务器得到数据
       this.$http({
-        url: `/articles/${id}`,
-        method: 'DELETE'
+        url: '/channels',
+        method: 'GET'
       }).then(res => {
-        console.log('-----------------------------------')
-        console.log(res)
-        console.log('-----------------------------------')
+        this.channelsList = res.channels
+      })
+    },
+    // 筛选数据
+    searchList () {
+      this.tableLoading = true
+      // 创建一个参数对象：
+      //      如果我们的参数在这里存在就直接添加到对象中，如果参数不存在，就不放到对象中
+      let paramsObj = {}
+      // 判断是否存在状态
+      if (this.status) {
+        paramsObj.status = this.status
+      }
+      // 判断是否存在频道数据
+      if (this.form.channelid) {
+        paramsObj.channel_id = this.form.channelid
+      }
+      // 判断是否存在时间
+      if (this.dateTime !== null && this.dateTime.length !== 0) {
+        paramsObj.begin_pubdate = this.dateTime[0]
+        paramsObj.end_pubdate = this.dateTime[1]
+      }
+      // 1.0 得到所有搜索相关的属性
+      // 状态： status 频道 form.channelId 时间 dateTime
+      // 2.0 以这些数据为参数到服务器中请求:发送请求到服务器
+      this.$http({
+        url: '/articles',
+        method: 'GET',
+        params: {
+          page: this.page,
+          per_page: this.per_page,
+          ...paramsObj
+        }
+      }).then(res => {
+        // 将数据保存
+        this.dataList = res.results
+        this.total_count = res.total_count
+        this.tableLoading = false
       })
     }
   },
   created () {
+    // 得到文章列表
     this.getArticleList()
+    // 得到频道数据
+    this.getChannels()
   }
 }
 </script>

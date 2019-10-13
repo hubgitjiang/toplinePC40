@@ -11,20 +11,27 @@ import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 // 导入全局样式
 import '@/styles/index.less'
-// 导入 axios
-import axios from 'axios'
 // 导入 json-bigint
 import JSONBig from 'json-bigint'
+// 导入 axios
+import axios from 'axios'
 
 // 给 axios 设置一个基准地址
 axios.defaults.baseURL = 'http://ttapi.research.itcast.cn/mp/v1_0'
 
 // 对服务器响应给 axios 的数据进行 bigint 的处理
-axios.defaults.transformResponse = [function (data) {
-  // 这个 data 就是纯粹的服务器响应给 axios 的数据
-  // 在 return 之前要进行转换
-  return JSONBig.parse(data)
-}]
+axios.defaults.transformResponse = [
+  function (data) {
+    try {
+      // 这个 data 就是纯粹的服务器响应给 axios 的数据
+      // 在 return 之前要进行转换
+      return JSONBig.parse(data) // 报错的原因：因为删除数据后，接口返回的数据为空，无法进行 JSONBig 的转换
+    } catch (err) {
+      console.log(err)
+      return data
+    }
+  }
+]
 
 // 设置 axios 的拦截器
 // 请求拦截器：发送请求之前执行
@@ -58,9 +65,13 @@ axios.interceptors.response.use(
   function (response) {
     // 当服务器响应信息回来时执行
     // 响应拦截器如果要返回信息，必须 return response
-    console.log('------------------------------------我是响应拦截器------------------------------------')
+    console.log(
+      '------------------------------------我是响应拦截器------------------------------------'
+    )
     console.log(response)
-    console.log('------------------------------------我是响应拦截器------------------------------------')
+    console.log(
+      '------------------------------------我是响应拦截器------------------------------------'
+    )
     // return response;
     return response.data.data
   },
@@ -94,20 +105,6 @@ Vue.use(ElementUI)
 
 // 设置当前项目的模式：当前模式为 开发模式
 Vue.config.productionTip = false
-
-var a = true
-if (a) {
-  console.log('aaaa')
-}
-
-function sayHi () {
-  console.log('sayHi')
-}
-sayHi()
-
-if (a === true) {
-  console.log('111')
-}
 
 // 创建一个 vue 实例
 new Vue({
